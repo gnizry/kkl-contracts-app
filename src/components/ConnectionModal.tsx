@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plug, LogOut, ShieldCheck } from 'lucide-react';
 import { useConnection, parseWebMapId } from '../connection';
+import { LOCK_PORTAL, IDLE_LOGOUT_MINUTES } from '../config';
 
 export const ConnectionModal: React.FC = () => {
   const c = useConnection();
@@ -31,7 +32,8 @@ export const ConnectionModal: React.FC = () => {
 
         <div className="flex flex-col gap-3">
           <label className="text-xs font-semibold text-slate-600">כתובת הפורטל
-            <input dir="ltr" className={`${input} mt-1`} value={portalUrl} onChange={(e) => setPortalUrl(e.target.value)} placeholder="https://kkl.maps.arcgis.com" />
+            <input dir="ltr" className={`${input} mt-1 ${LOCK_PORTAL ? 'opacity-70 cursor-not-allowed' : ''}`} value={portalUrl} onChange={(e) => setPortalUrl(e.target.value)} placeholder="https://kkl.maps.arcgis.com" readOnly={LOCK_PORTAL} />
+            {LOCK_PORTAL && <span className="text-[11px] text-slate-400 font-normal">הכתובת נעולה בגרסה המפורסמת, כדי שהסיסמה תישלח רק לפורטל של קק״ל.</span>}
           </label>
           <label className="text-xs font-semibold text-slate-600">Web Map (מזהה או קישור ל-Map Viewer)
             <input dir="ltr" className={`${input} mt-1`} value={webMap} onChange={(e) => setWebMap(e.target.value)} placeholder="https://…/mapviewer/index.html?webmap=…" />
@@ -49,8 +51,8 @@ export const ConnectionModal: React.FC = () => {
         </div>
 
         {c.status === 'error' && <div className="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3">{c.error}</div>}
-        <div className="mt-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
-          בתצוגה המקוונת של הארטיפקט הרשת והחלונות הקופצים חסומים – החיבור יעבוד כשמריצים את הפרויקט מקומית (npm run dev) או מארחים אותו. חשבונות עם כניסה ארגונית (SSO) או אימות דו-שלבי לא נתמכים בשיטה זו – אפשר ליצור משתמש ארגוני רגיל לצורך זה.
+        <div className="mt-3 text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5 leading-relaxed">
+          הסיסמה נשלחת ישירות לפורטל ArcGIS Online בלבד, אינה נשמרת בדפדפן ואינה עוברת בשרת אחר. נשמר רק טוקן זמני בלשונית הנוכחית, והחיבור מתנתק אוטומטית אחרי {IDLE_LOGOUT_MINUTES} דקות ללא פעילות. חשבונות עם כניסה ארגונית (SSO) או אימות דו-שלבי אינם נתמכים בשיטה זו.
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">

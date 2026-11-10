@@ -19,3 +19,8 @@ export const LAYER_TITLES = {
   logs: 'יומני עבודה',
   logsEquip: 'יומני עבודה - ציוד',
 };
+
+/** בפרסום הציבורי (GitHub Pages) הפורטל נעול לכתובת קק"ל כדי שלא ניתן לשלוח סיסמה לשרת אחר. נקבע ב-workflow דרך VITE_LOCK_PORTAL=1 */
+export const LOCK_PORTAL = (import.meta as any).env?.VITE_LOCK_PORTAL === '1';
+/** ניתוק אוטומטי אחרי חוסר פעילות (דקות) */
+export const IDLE_LOGOUT_MINUTES = 30;

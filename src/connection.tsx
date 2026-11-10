@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { DEFAULT_PORTAL_URL, DEFAULT_WEBMAP_ID } from './config';
+import { DEFAULT_PORTAL_URL, DEFAULT_WEBMAP_ID, LOCK_PORTAL, IDLE_LOGOUT_MINUTES } from './config';
 import { loadSdk, esriRequire } from './esriSdk';
 import type { PopupModel } from './utils/popupModel';
 
@@ -37,7 +37,7 @@ export const parseWebMapId = (v: string): string => {
 const loadSaved = (): ConnSettings => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { portalUrl: DEFAULT_PORTAL_URL, webMapId: DEFAULT_WEBMAP_ID, username: '', ...JSON.parse(raw) };
+    if (raw) { const o = { portalUrl: DEFAULT_PORTAL_URL, webMapId: DEFAULT_WEBMAP_ID, username: '', ...JSON.parse(raw) }; if (LOCK_PORTAL) o.portalUrl = DEFAULT_PORTAL_URL; return o; }
   } catch {}
   return { portalUrl: DEFAULT_PORTAL_URL, webMapId: DEFAULT_WEBMAP_ID, username: '' };
 };
@@ -54,7 +54,7 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [liveModel, setLiveModel] = useState<PopupModel | null>(null);
 
   const connect = useCallback<Ctx['connect']>(async (s, password, remember = false) => {
-    const next = { ...s, portalUrl: s.portalUrl.replace(/\/+$/, ''), webMapId: parseWebMapId(s.webMapId), username: s.username.trim() };
+    const next = { ...s, portalUrl: (LOCK_PORTAL ? DEFAULT_PORTAL_URL : s.portalUrl).replace(/\/+$/, ''), webMapId: parseWebMapId(s.webMapId), username: s.username.trim() };
     setSettings(next);
     setStatus('connecting');
     setError('');
@@ -63,6 +63,7 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       else localStorage.removeItem(KEY);
     } catch {}
     try {
+      if (!/^https:\/\//i.test(next.portalUrl)) throw new Error('כתובת הפורטל חייבת להתחיל ב-https://');
       if (!next.username || !password) throw new Error('נא להזין שם משתמש וסיסמה.');
       // הסיסמה נשלחת ישירות לפורטל (generateToken) ואינה נשמרת בשום מקום; נשמר רק הטוקן בזיכרון.
       const body = new URLSearchParams({ username: next.username, password, client: 'referer', referer: window.location.origin, expiration: '120', f: 'json' });
@@ -95,13 +96,24 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     window.location.reload(); // מנקה interceptors וטוקן מהזיכרון
   }, []);
 
+  // ניתוק אוטומטי אחרי חוסר פעילות
+  useEffect(() => {
+    if (status !== 'connected') return;
+    let timer: number;
+    const reset = () => { window.clearTimeout(timer); timer = window.setTimeout(() => { disconnect(); }, IDLE_LOGOUT_MINUTES * 60000); };
+    const evs = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => { window.clearTimeout(timer); evs.forEach((e) => window.removeEventListener(e, reset)); };
+  }, [status, disconnect]);
+
   // שחזור חיבור אחרי רענון הדף (כל עוד הטוקן בתוקף ובאותה לשונית)
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(SKEY);
       if (!raw) return;
       const t = JSON.parse(raw);
-      if (!t.token || t.expires < Date.now() + 60000) { sessionStorage.removeItem(SKEY); return; }
+      if (!t.token || t.expires < Date.now() + 60000 || (LOCK_PORTAL && t.portalUrl !== DEFAULT_PORTAL_URL)) { sessionStorage.removeItem(SKEY); return; }
       setStatus('connecting');
       activateToken(t.portalUrl, t.token, t.expires, t.username).then(() => { setUser(t.username); setStatus('connected'); }).catch(() => setStatus('disconnected'));
     } catch {}

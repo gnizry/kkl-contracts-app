@@ -17,3 +17,8 @@
 
 ## הלאה
 - החלפת התחברות שם משתמש/סיסמה ב-OAuth 2.0 (דורש רישום Application ב-AGOL; ה-client ID אינו סוד).
+
+## אבטחת חיבור ל-ArcGIS Online
+- התחברות בשם משתמש וסיסמה; הסיסמה נשלחת רק לפורטל ואינה נשמרת. הטוקן ב-`sessionStorage` בלבד.
+- בגרסה המפורסמת (`VITE_LOCK_PORTAL=1` ב-workflow) כתובת הפורטל נעולה ל-`DEFAULT_PORTAL_URL`; בהרצה מקומית (`npm run dev`) אפשר לשנות אותה.
+- ניתוק אוטומטי אחרי `IDLE_LOGOUT_MINUTES` (ברירת מחדל 30) דקות ללא פעילות, מוגדר ב-`src/config.ts`.
