@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-single/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+# נתוני אמת – לעולם לא למאגר ולא לאתר המפורסם
+src/data/real*.json
